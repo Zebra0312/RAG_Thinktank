@@ -33,7 +33,7 @@ def node_entry(state: ImportGraphState) -> ImportGraphState:
     # 判断local_file_path是否唯恐字符串或者None
     if not local_file_path:
         # 说明state里没有local_file_path,进行健壮性处理,
-        logger.warning(f"当前状态中没有{local_file_path},请检查初始状态")
+        logger.warning(f"当前状态中没有local_file_path,请检查初始状态")
         # 返回状态
         return state
     if local_file_path.endswith(".pdf"):
