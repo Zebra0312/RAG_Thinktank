@@ -1,6 +1,5 @@
 import sys
 from pathlib import Path
-
 from app.core.logger import logger, node_log
 from app.import_process.agent.state import ImportGraphState, create_default_state
 from app.utils.task_utils import add_running_task, add_done_task
@@ -14,6 +13,18 @@ from app.utils.task_utils import add_running_task, add_done_task
 
 @node_log("node_entry")
 def node_entry(state: ImportGraphState) -> ImportGraphState:
+    """
+    节点: 入口节点 (node_entry)
+    为什么叫这个名字: 作为图的 Entry Point，负责接收外部输入并决定流程走向。
+    未来要实现:
+        1. 进行任务状态记录,开始和结束列表记录
+        2. 根据state中 local_file_path属性判断数据类型进而修改
+           相关参数, is_md_read_enabled 或者 is_pdf_read_enabled
+                    md_path 或者 pdf_path
+        3. 不可解析结果类型不可用,直接输出对应警告日志! 逻辑路由节点会自动处理
+        4. 获取file_tile标识,用于后期识别pdf对应的主体(item_name)进行兜底
+    """
+
     # 记录节点的运行状态
     add_running_task(state["task_id"], "node_entry")
     # 获取文件上传的路径
@@ -47,6 +58,10 @@ def node_entry(state: ImportGraphState) -> ImportGraphState:
     # 记录节点的完成状态
     add_done_task(state["task_id"], "node_entry")
     return state
+
+
+
+
 
 if __name__ == '__main__':
 
