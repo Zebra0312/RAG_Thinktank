@@ -40,7 +40,8 @@ flowchart TD
 2. 判断文件类型：`.pdf` / `.md` / 其他不支持格式；
 3. 设置路由标记并记录路径：`is_pdf_read_enabled` 或 `is_md_read_enabled`；
 4. 提取 `file_title`（文件名去掉后缀），作为后续识别的兜底。
-   另外函数体首尾有 `add_running_task` / `add_done_task` 记录任务状态。
+
+> 注：函数体首尾有 `add_running_task` / `add_done_task` 记录任务状态。
 
 ## 2. node_pdf_to_md — PDF 转 Markdown
 
@@ -63,3 +64,11 @@ flowchart TD
 3. **步骤3：二次切分** — 用 `RecursiveCharacterTextSplitter`（200 字/重叠 20）控制切片大小；
 4. **步骤4：数据备份和修改 state** — 写入 `state["chunks"]` 并备份成 JSON 文件。
 
+## 5. node_item_name_recognition — 主体识别
+
+1. **步骤1：校验和取值** — 获取 `file_title`、`chunks`；
+2. **步骤2：构建上下文环境** — `chunks` → 取前 5 条 → 拼接成 context 文本；
+3. **步骤3：调用模型** — 拼接提示词，识别 chunks 对应的 `item_name`；
+4. **步骤4：产品主体回填** — 修改 state 中 chunks，回填 `item_name`；
+5. **步骤5：生成向量** — 为 `item_name` 生成稠密/稀疏向量；
+6. **步骤6：存储到向量数据库** — 写入 `kb_item_name`（含 id / file_title / item_name / 稠密和稀疏向量）。
