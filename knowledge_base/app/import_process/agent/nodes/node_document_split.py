@@ -1,5 +1,10 @@
+import json
+import os
 import re
 import sys
+from pathlib import Path
+
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from app.core.logger import logger, node_log, step_log
 from app.import_process.agent.state import ImportGraphState
@@ -90,6 +95,52 @@ def step_2_split_by_title(md_content, file_title):
         )
     return sections
 
+@step_log("step_3_split_by_title")
+def step_3_refine_chunks(sections):
+    # 创建递归切分对象
+    spliter = RecursiveCharacterTextSplitter(
+        chunk_size=CHUNK_SIZE,
+        chunk_overlap=CHUNK_OVERLAP,
+        separators=["\n\n", "\n", "。", "！", "；", " "]
+    )
+    # 创建存储最终结果的变量
+    final_chunks = []
+    # 遍历初切的切片
+    for chunk in sections:
+        # 使用递归切分对chunk进行二次切分
+        sub_chunks= spliter.split_text(chunk["content"])
+        # 判断二次切分之后的子切片数量是否大于1
+        has_multiple_chunks = len(sub_chunks) > 1
+        # 对二次切分的结果进行遍历
+        for idx,sub_chunks in enumerate(sub_chunks,start=1):
+            # 获取子切片的标题
+            # 若有多个子切片,title=title_1,title_2,title_3...
+            # 若只有一个子切片,current_title = title
+            current_title = f"{chunk['title']}_{idx}" if has_multiple_chunks else chunk['title']
+            # 保存每个切片
+            final_chunks.append(
+                {
+                    "title": current_title,
+                    "content": sub_chunks,
+                    "parent_title": chunk["title"],
+                    "file_title": chunk["file_title"],
+                    "part": idx
+                }
+            )
+    return final_chunks
+
+@step_log("step_4_backup_chunks")
+def step_4_backup_chunks(final_chunks,state: ImportGraphState):
+    # 获取存储切片的json文件路径
+    chunks_backup_path = Path(state["md_path"]).parent / "backup,json"
+    # 将final_chunks写出到json文件中
+    with open(chunks_backup_path, "w", encoding="utf-8") as f:
+        json.dump(
+            final_chunks,
+            f,
+            ensure_ascii=False, #中文直接原文存储
+            indent=4 # json带有缩进 4
+        )
 
 @node_log("node_document_split")
 def node_document_split(state: ImportGraphState) -> ImportGraphState:
@@ -107,6 +158,53 @@ def node_document_split(state: ImportGraphState) -> ImportGraphState:
     md_content, file_title = step_1_get_content(state)
     # 步骤2：通过标题进行初切，保证语义的完整
     sections = step_2_split_by_title(md_content, file_title)
+    # 步骤3: 使用RecursiveCharacterTextSplitter进行切分
+    final_chunks = step_3_refine_chunks(sections)
+    # 步骤4: 数据备份和修改state chunks
+    state['chunks'] = final_chunks
+    step_4_backup_chunks(final_chunks,state)
     # 记录节点的状态为已完成
     add_done_task(state["task_id"], "node_document_split")
     return state
+
+
+if __name__ == '__main__':
+    """
+    单元测试：联合node_md_img（图片处理节点）进行集成测试
+    测试条件：1.已配置.env（MinIO/大模型环境） 2.存在测试MD文件 3.能导入node_md_img
+    测试流程：先运行图片处理→再运行文档切分，验证端到端流程
+    """
+
+    """本地测试入口：单独运行该文件时，执行MD图片处理全流程测试"""
+    from app.utils.path_util import PROJECT_ROOT
+    from app.import_process.agent.nodes.node_md_img import node_md_img
+
+    logger.info(f"本地测试 - 项目根目录：{PROJECT_ROOT}")
+
+    # 测试MD文件路径（需手动将测试文件放入对应目录）
+    test_md_name = os.path.join(r"output\hak180产品安全手册", "hak180产品安全手册.md")
+    test_md_path = os.path.join(PROJECT_ROOT, test_md_name)
+
+    # 校验测试文件是否存在
+    if not os.path.exists(test_md_path):
+        logger.error(f"本地测试 - 测试文件不存在：{test_md_path}")
+        logger.info("请检查文件路径，或手动将测试MD文件放入项目根目录的output目录下")
+    else:
+        # 构造测试状态对象，模拟流程入参
+        test_state = {
+            "md_path": test_md_path,
+            "task_id": "test_task_123456",
+            "md_content": "",
+            "file_title": "hak180产品安全手册",
+            "local_dir":os.path.join(PROJECT_ROOT, "output"),
+        }
+        logger.info("开始本地测试 - MD图片处理全流程")
+        # 执行核心处理流程
+        result_state = node_md_img(test_state)
+        logger.info(f"本地测试完成 - 处理结果状态：{result_state}")
+        logger.info("\n=== 开始执行文档切分节点集成测试 ===")
+
+        logger.info(">> 开始运行当前节点：node_document_split（文档切分）")
+        final_state = node_document_split(result_state)
+        final_chunks = final_state.get("chunks", [])
+        logger.info(f"✅ 测试成功：最终生成{len(final_chunks)}个有效Chunk{final_chunks}")
