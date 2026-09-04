@@ -39,10 +39,10 @@ def node_entry(state: ImportGraphState) -> ImportGraphState:
     if local_file_path.endswith(".pdf"):
         # 更新state里is_pdf_read_enable,pdf_path
         state["is_pdf_read_enabled"] = True
-        state["pdf_file_path"] = local_file_path
+        state["pdf_path"] = local_file_path
     elif local_file_path.endswith(".md"):
         state["is_md_read_enabled"] = True
-        state["md_file_path"] = local_file_path
+        state["md_path"] = local_file_path
     else:
         # 说明文件不是pdf或者md
         logger.warning(f"当前上传文件路径{local_file_path},文件格式不是系统支持的格式")
