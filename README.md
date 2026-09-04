@@ -2,12 +2,11 @@
 
 > 面向产品手册的 RAG 知识库。当前交付**导入模块（Import Pipeline）**：由 LangGraph 编排，把 PDF/Markdown 文档逐步加工为可检索切片（chunks），生成稠密 + 稀疏混合向量并写入 Milvus，七个节点已全部实现并通过端到端测试。
 
-![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
-![uv](https://img.shields.io/badge/uv-lock%20included-6B8E23)
-![LangGraph](https://img.shields.io/badge/LangGraph-1.x-1F6FEB)
-![Milvus](https://img.shields.io/badge/Milvus-2.x-00A1E9)
-![BGE-M3](https://img.shields.io/badge/BGE--M3-hybrid-7C4DFF)
-![Status](https://img.shields.io/badge/导入模块-闭环-success)
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)](https://github.com/python/cpython)
+[![LangGraph](https://img.shields.io/badge/LangGraph-1.x-1F6FEB)](https://github.com/langchain-ai/langgraph)
+[![Milvus](https://img.shields.io/badge/Milvus-2.x-00A1E9)](https://github.com/milvus-io/milvus)
+[![BGE-M3](https://img.shields.io/badge/BGE--M3-hybrid-7C4DFF)](https://github.com/FlagOpen/FlagEmbedding)
+[![MinIO](https://img.shields.io/badge/MinIO-object%20storage-C72E49)](https://github.com/minio/minio)
 
 ## 目录
 
