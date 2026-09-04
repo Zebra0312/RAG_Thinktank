@@ -132,7 +132,7 @@ def step_3_refine_chunks(sections):
 @step_log("step_4_backup_chunks")
 def step_4_backup_chunks(final_chunks,state: ImportGraphState):
     # 获取存储切片的json文件路径
-    chunks_backup_path = Path(state["md_path"]).parent / "backup,json"
+    chunks_backup_path = Path(state["md_path"]).parent / "backup.json"
     # 将final_chunks写出到json文件中
     with open(chunks_backup_path, "w", encoding="utf-8") as f:
         json.dump(
