@@ -1,38 +1,45 @@
 # RAG_Thinktank
 
-RAG（Retrieval-Augmented Generation）检索增强生成，是当前大模型企业级应用的主流架构。
+​		RAG_Thinktank(RAG智库)采用RAG（Retrieval-Augmented Generation）检索增强生成架构，是当前大模型企业级应用的主流架构。
 
-传统大模型仅依靠训练知识回答问题，在陌生领域、私有业务、实时信息等场景下容易出现事实幻觉、答案不准确、引用不可靠等问题。RAG 通过 **“先检索、再生成”**的方式，让大模型在回答前先从外部知识库中查找相关事实材料，再基于真实资料生成答案，从根源上提升回答的准确性、可信度与可追溯性 。
+​		传统大模型仅依靠训练知识回答问题，在陌生领域、私有业务、实时信息等场景下容易出现事实幻觉、答案不准确、引用不可靠等问题。RAG 通过 **“先检索、再生成”**的方式，让大模型在回答前先从外部知识库中查找相关事实材料，再基于真实资料生成答案，从根源上提升回答的准确性、可信度与可追溯性 。
 
 ## 导入模块原型图（Import Pipeline）
 
-> 导入模块由 LangGraph 编排，把上传的 PDF/Markdown 文档逐步加工为可检索的切片（chunks），最终写入 Milvus。绿色节点为已实现，黄色节点为待实现。
+> 导入模块由 LangGraph 编排，把上传的 PDF/Markdown 文档逐步加工为可检索的切片（chunks）并写入 Milvus。七个节点已全部实现并通过端到端测试，链路闭环：**上传 → 解析 → 图片语义化 → 切分 → 主体识别 → 向量化 → 入库**。
 
 ```mermaid
 flowchart TD
-    classDef done fill:#e8f5e9,stroke:#43a047,color:#1b5e20;
-    classDef todo fill:#fff8e1,stroke:#f9a825,color:#795500;
+    classDef startEnd fill:#1e3a8a,stroke:#1e3a8a,color:#ffffff,stroke-width:2px,rx:14px,ry:14px;
+    classDef done fill:#e8f5e9,stroke:#43a047,color:#1b5e20,stroke-width:2px;
 
-    START(["开始：上传文件<br/>(local_file_path)"]) --> N1
+    START(["开始：上传文件<br/>local_file_path"]):::startEnd --> N1
 
-    N1["node_entry · 文件入口<br/>① 读取 local_file_path<br/>② 判断 .pdf / .md<br/>③ 设置路由标记<br/>④ 提取 file_title"]
+    N1["node_entry · 文件入口<br/>① 读取 local_file_path<br/>② 判断 .pdf / .md<br/>③ 设置路由标记<br/>④ 提取 file_title"]:::done
     N1 -->|".md"| N3
     N1 -->|".pdf"| N2
-    N1 -->|"其他格式"| END_A(["结束"])
+    N1 -->|"其他格式"| END_A(["结束"]):::startEnd
 
-    N2["node_pdf_to_md · PDF 转 Markdown<br/>① 校验 pdf_path / local_dir<br/>② MinerU 上传 PDF 并轮询解析<br/>③ 下载解压、定位并改名 md"] -->|"md_path / md_content"| N3
+    N2["node_pdf_to_md · PDF 转 Markdown<br/>① 校验 pdf_path / local_dir<br/>② MinerU 上传 PDF 并轮询解析<br/>③ 下载解压、定位并改名 md"]:::done
+    N2 -->|"md_path / md_content"| N3
 
-    N3["node_md_img · Markdown 图片处理<br/>① 扫描图片引用<br/>② 视觉模型生成图片摘要<br/>③ 上传 MinIO 并替换链接"] -->|"处理后的 md_content"| N4
+    N3["node_md_img · Markdown 图片处理<br/>① 扫描图片引用<br/>② 视觉模型生成图片摘要<br/>③ 上传 MinIO 并替换链接"]:::done
+    N3 -->|"处理后的 md_content"| N4
 
-    N4["node_document_split · 文档切分<br/>① 清洗文本、统一换行符<br/>② 按 Markdown 标题初切<br/>③ 递归二次切分<br/>④ 写入 chunks 并备份"] -->|"chunks"| N5
+    N4["node_document_split · 文档切分<br/>① 清洗文本、统一换行符<br/>② 按标题初切<br/>③ 递归二次切分<br/>④ 写入 chunks 并备份"]:::done
+    N4 -->|"chunks"| N5
 
-    N5["node_item_name_recognition · 主体识别<br/>⏳ 占位：识别商品名称"] -->|"item_name"| N6
-    N6["node_bge_embedding · 向量生成<br/>⏳ 占位：稠密 + 稀疏向量"] -->|"embeddings_content"| N7
-    N7["node_import_milvus · 导入向量库<br/>⏳ 占位：幂等写入 Milvus"] -->|"写入集合"| END_B(["结束"])
+    N5["node_item_name_recognition · 主体识别<br/>① 校验取值<br/>② 前 5 切片拼 context<br/>③ LLM 识别 item_name<br/>④ 回填 chunk<br/>⑤ 稠密/稀疏向量<br/>⑥ 写入 kb_item_names"]:::done
+    N5 -->|"item_name"| N6
 
-    class N1,N2,N3,N4 done;
-    class N5,N6,N7 todo;
+    N6["node_bge_embedding · 向量生成<br/>① 校验 chunks<br/>② 分批生成稠密+稀疏向量并回填"]:::done
+    N6 -->|"带向量的 chunks"| N7
+
+    N7["node_import_milvus · 导入向量库<br/>① 校验 chunks<br/>② 创建 kb_chunks 集合与索引<br/>③ 按 item_name 删旧数据<br/>④ 插入并回填 chunk_id"]:::done
+    N7 --> END_B(["结束"]):::startEnd
 ```
+
+
 
 ## 1. node_entry — 入口节点
 
@@ -72,3 +79,15 @@ flowchart TD
 4. **步骤4：产品主体回填** — 修改 state 中 chunks，回填 `item_name`；
 5. **步骤5：生成向量** — 为 `item_name` 生成稠密/稀疏向量；
 6. **步骤6：存储到向量数据库** — 写入 `kb_item_name`（含 id / file_title / item_name / 稠密和稀疏向量）。
+
+## 6. node_bge_embedding — 向量生成
+
+1. **步骤1：输入数据校验** — 获取 `state["chunks"]`，为空则抛出异常；
+2. **步骤2：批量生成双向量** — 每 5 条一批，文本拼接为“商品：{item_name}，介绍：{content}”，调用 BGE-M3 生成稠密 + 稀疏向量并回填到每个 chunk，单批失败时做兜底跳过。
+
+## 7. node_import_milvus — 导入向量库
+
+1. **步骤1：校验数据** — 获取 `chunks`，为空则抛出异常；
+2. **步骤2：准备集合** — 不存在则创建 `kb_chunks`（含 chunk_id / content / title / parent_title / part / file_title / item_name / dense / sparse，稠密 HNSW-COSINE、稀疏 SPARSE_INVERTED_INDEX-IP）；
+3. **步骤3：删除旧数据** — 按 `item_name` 幂等删除，并重新加载集合；
+4. **步骤4：插入新数据** — 批量写入 Milvus，把返回的 `chunk_id` 回填到各 chunk。
