@@ -269,6 +269,8 @@ def node_item_name_confirm(state : QueryGraphState):
 
     # 步骤1: 获取历史记录
     history_list = get_recent_messages(session_id)
+    # 保存历史记录到状态中
+    state["history"] = history_list
     # 步骤2：将当前用户的问题保存到MongoDB中，返回的message_id是添加的数据的唯一标识
     message_id = save_chat_message(session_id, "user", original_query, "", [])
     # 步骤3: 从用户的问题中提取item_names并重写用户问题
@@ -293,8 +295,6 @@ def node_item_name_confirm(state : QueryGraphState):
     state = step_6_check_confirmation(state, align_result, session_id, history_list, rewritten_query)
     # 步骤7：写入最终历史
     final_state = step_7_write_history(state, session_id, history_list, rewritten_query, message_id)
-    # 保存历史记录到状态中
-    final_state["history"] = history_list
 
     # 记录当前任务的状态为已完成
     add_done_task(state["session_id"], "node_item_name_confirm", state["is_stream"])
