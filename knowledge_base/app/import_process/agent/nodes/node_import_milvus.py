@@ -37,20 +37,20 @@ def step_2_prepare_collection(milvus_client: MilvusClient):
         schema.add_field(field_name="part", datatype=DataType.INT8)
         schema.add_field(field_name="file_title", datatype=DataType.VARCHAR, max_length=65535)
         schema.add_field(field_name="item_name", datatype=DataType.VARCHAR, max_length=65535)
-        schema.add_field(field_name="dense", datatype=DataType.FLOAT_VECTOR, dim=1024)
-        schema.add_field(field_name="sparse", datatype=DataType.SPARSE_FLOAT_VECTOR)
+        schema.add_field(field_name="dense_vector", datatype=DataType.FLOAT_VECTOR, dim=1024)
+        schema.add_field(field_name="sparse_vector", datatype=DataType.SPARSE_FLOAT_VECTOR)
         # 准备索引
         index_params = milvus_client.prepare_index_params()
         # 添加索引
         index_params.add_index(
-            field_name="dense",
+            field_name="dense_vector",
             index_name="dense_vector_index",
             index_type="HNSW",
             metric_type="COSINE",
         )
         # 添加索引
         index_params.add_index(
-            field_name="sparse",
+            field_name="sparse_vector",
             index_name="sparse_vector_index",
             index_type="SPARSE_INVERTED_INDEX",
             metric_type="IP",
