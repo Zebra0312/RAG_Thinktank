@@ -53,9 +53,9 @@ def step_2_generate_embeddings(chunks):
                 for index, doc in enumerate(batch_chunks):
                     # 对chunk进行浅拷贝
                     chunk = doc.copy()
-                    # 回填稠密向量和稀疏向量
-                    chunk["dense"] = embeddings["dense"][index]
-                    chunk["sparse"] = embeddings["sparse"][index]
+                    # 回填稠密向量和稀疏向量（字段名必须与Milvus集合schema中的字段名一致）
+                    chunk["dense_vector"] = embeddings["dense"][index]
+                    chunk["sparse_vector"] = embeddings["sparse"][index]
                     # 存储到final_chunks中
                     final_chunks.append(chunk)
         except Exception as e:
@@ -127,8 +127,8 @@ if __name__ == '__main__':
 
         # 验证向量生成结果（打印向量字段是否存在）
         for idx, chunk in enumerate(result_chunks):
-            has_dense = "dense" in chunk
-            has_sparse = "sparse" in chunk
+            has_dense = "dense_vector" in chunk
+            has_sparse = "sparse_vector" in chunk
             logger.info(
                 f"第{idx + 1}条切片：稠密向量生成{'' if has_dense else '未'}成功 | 稀疏向量生成{'' if has_sparse else '未'}成功")
 

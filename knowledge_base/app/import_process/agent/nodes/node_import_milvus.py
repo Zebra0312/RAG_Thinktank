@@ -142,8 +142,8 @@ if __name__ == '__main__':
                 "parent_title":"test.pdf",
                 "part":1,
                 "file_title": "test.pdf",
-                "dense": [0.1] * dim,  # 模拟 Dense Vector
-                "sparse": {1: 0.5, 10: 0.8}  # 模拟 Sparse Vector
+                "dense_vector": [0.1] * dim,  # 模拟 Dense Vector
+                "sparse_vector": {1: 0.5, 10: 0.8}  # 模拟 Sparse Vector
             }
 ,
             {
@@ -153,8 +153,8 @@ if __name__ == '__main__':
                 "parent_title": "test.pdf2",
                 "part": 1,
                 "file_title": "test.pdf2",
-                "dense": [0.1] * dim,  # 模拟 Dense Vector
-                "sparse": {1: 0.5, 10: 0.8}  # 模拟 Sparse Vector
+                "dense_vector": [0.1] * dim,  # 模拟 Dense Vector
+                "sparse_vector": {1: 0.5, 10: 0.8}  # 模拟 Sparse Vector
             }
         ]
     }
