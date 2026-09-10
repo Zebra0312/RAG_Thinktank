@@ -22,11 +22,9 @@ def node_search_embedding(state: QueryGraphState):
     # 分别获取稠密向量和稀疏向量
     dense_vector = embeddings["dense"][0]
     sparse_vector = embeddings["sparse"][0]
-    # 将item_name作为检索的条件：每个商品名单独生成like条件，再用or连接
-    # 注意：需要对名称中的单引号进行转义，且%必须放在字符串字面量内部
-    expr_data = ", ".join(f"{item_name}" for item_name in item_names)
-    # 将item_name作为检索的条件，拼接条件
-    expr = f"item_name like '%{expr_data}%' "
+    # 拼接item_name作为检索条件
+    expr_data = ", ".join(f"'{item_name}'" for item_name in item_names)
+    expr = f"item_name in [{expr_data}]"
     # 设置稠密向量和稀疏向量的检索方式
     reqs = create_hybrid_search_requests(
         dense_vector=dense_vector,
@@ -56,7 +54,7 @@ if __name__ == "__main__":
     test_state = {
         "session_id": "test_search_embedding_001",
         "rewritten_query": "HAK 180 烫金机使用说明",  # 模拟改写后的查询
-        "item_names": ["HAK 180 烫金机"],  # 模拟已确认的商品名
+        "item_names": ["Brother HAK 180 烫金机"],  # 模拟已确认的商品名
         "is_stream": False
     }
 
