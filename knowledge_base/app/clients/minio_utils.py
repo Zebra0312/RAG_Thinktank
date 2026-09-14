@@ -64,12 +64,18 @@ def _create_bucket_ready(client: Minio):
     # 检查桶是否存在
     if not client.bucket_exists(bucket_name):
         client.make_bucket(bucket_name)  # 不存在则创建桶
-        # 为新桶设置访问策略（允许公开读取，适配图片在线访问需求）
-        client.set_bucket_policy(bucket_name, _set_bucket_policy(bucket_name))
-        logger.info(f"MinIO桶 {bucket_name} 已创建，并设置访问策略")
+        logger.info(f"MinIO桶 {bucket_name} 已创建")
     else:
-        # 桶已存在，仅打印日志，不重复操作
+        # 桶已存在，无需重复创建
         logger.info(f"MinIO桶 {bucket_name} 已存在，无需重复创建")
+    # 关键：无论桶是本次新建还是早已存在，都要确保公开读策略已设置。
+    # 历史 bug：策略原本只在“新建桶”分支里设置，导致已存在的桶永远没有策略，
+    # 浏览器匿名访问图片会返回 403。set_bucket_policy 是幂等的，重复设置无副作用。
+    try:
+        client.set_bucket_policy(bucket_name, _set_bucket_policy(bucket_name))
+        logger.info(f"MinIO桶 {bucket_name} 公开读策略已设置（允许匿名 s3:GetObject）")
+    except Exception as e:
+        logger.error(f"设置MinIO桶 {bucket_name} 访问策略失败：{e}")
 
 
 def get_minio_client() -> Minio:

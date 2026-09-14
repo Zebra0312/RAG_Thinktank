@@ -125,10 +125,12 @@ def step_3_image_summary(image_targets, stem):
 def step_4_upload_images_replace(image_summaries, image_targets, md_content, stem):
     # 获取minio的客户端对象
     minio_client = get_minio_client()
+    # 图片目录（去首尾斜杠，避免拼出 "bucketupload-images" 这类错误路径）
+    img_dir = minio_config.minio_img_dir.strip("/")
     # 将之前md文件中的图片查询
     object_list = minio_client.list_objects(
         bucket_name=minio_config.bucket_name, # 设置桶名
-        prefix=f"{minio_config.minio_img_dir[1:]} / {stem}", # 设置获取的图片的前缀（即所在的目录）
+        prefix=f"{img_dir}/{stem}", # 设置获取的图片的前缀（即所在的目录）
         recursive=True, # 是否递归获取所有的子目录中的文件
     )
     # 将object_list中的图片转换为DeleteObject对象
@@ -149,12 +151,12 @@ def step_4_upload_images_replace(image_summaries, image_targets, md_content, ste
             # 上传图片
             minio_client.fput_object(
                 bucket_name=minio_config.bucket_name,
-                object_name=f"{minio_config.minio_img_dir}/{stem}/{image_name}",
+                object_name=f"{img_dir}/{stem}/{image_name}",
                 file_path=image_path,
                 content_type="image/jpeg"
             )
-            # 获取图片在minio中的地址
-            image_urls[image_name] = f"http://{minio_config.endpoint}/{minio_config.bucket_name}{minio_config.minio_img_dir}/{stem}/{image_name}"
+            # 获取图片在minio中的地址（注意 bucket 与目录之间必须有 "/"）
+            image_urls[image_name] = f"http://{minio_config.endpoint}/{minio_config.bucket_name}/{img_dir}/{stem}/{image_name}"
         except Exception as e:
             logger.error(f"{image_name}上传失败,{e}")
     # 创建存储图片所对应的摘要信息和minio中url的变量
