@@ -298,8 +298,13 @@
   </div>
 
   <script>
-    // 默认同源；如你把页面单独打开（file://），可改成 http://127.0.0.1:8001
-    const API_BASE = `${location.protocol}//${location.host}`.includes('http') ? `${location.protocol}//${location.host}` : 'http://127.0.0.1:8001';
+    // 检索服务地址（必须与 query_service.py 末尾 uvicorn.run 的端口一致）
+    const API_HOST = 'http://127.0.0.1:9091';
+    // 只有当页面本身就是由检索服务(9091)提供时才走同源；
+    // 若通过 IDE 内置预览 / 静态服务器 / file:// 打开，页面所在源并不是后端，
+    // 此时必须显式指向 API_HOST，否则 /health、/query 会打到“提供页面的那台服务器”上，
+    // 返回它的 HTML 404（表现为右上角“API: 未连接”、发消息返回 <h1>404 Not Found</h1>）。
+    const API_BASE = (location.port === '9091') ? `${location.protocol}//${location.host}` : API_HOST;
     const chatEl = document.getElementById('chat');
     const inputEl = document.getElementById('input');
     const sendBtn = document.getElementById('send');
@@ -515,6 +520,19 @@
         }
         containerEl.appendChild(imgWrap);
       }
+    }
+
+    // 流式阶段专用渲染：只渲染文字，不渲染任何图片。
+    // 原因：delta 增量是未经服务端校验的原文，可能包含模型编造的图片地址；
+    // 图片统一等 final 事件（携带校验后的 answer 与 image_urls）再渲染，避免“闪一下又消失”。
+    function renderStreamingText(containerEl, text){
+      const { text: body } = parseAnswerAndImages(text);   // 【图片】区块在此被丢弃
+      const plain = String(body || '').replace(/!\[[^\]]*\]\([^)]*\)/g, '');
+      containerEl.textContent = '';
+      const textEl = document.createElement('div');
+      textEl.className = 'answer-text';
+      textEl.textContent = plain;
+      containerEl.appendChild(textEl);
     }
 
     function addUserMsg(text){
@@ -789,8 +807,8 @@
             const delta = d.delta || '';
             if(delta){
               rawAnswerText += delta;
-              // 即使后端未发送 final，也尽可能在流式过程中渲染图片
-              renderAnswerWithImages(answerEl, rawAnswerText, []);
+              // 流式阶段只渲染文字；图片统一等 final 事件渲染（避免编造地址一闪而过）
+              renderStreamingText(answerEl, rawAnswerText);
               scrollToBottom();
             }
           }catch(_){}
@@ -839,10 +857,10 @@
           try{
             const msg = e && e.data ? (JSON.parse(e.data).error || 'SSE 连接中断/失败') : 'SSE 连接中断/失败';
             rawAnswerText += `\n\n（错误：${msg}）`;
-            renderAnswerWithImages(answerEl, rawAnswerText, []);
+            renderStreamingText(answerEl, rawAnswerText);
           }catch(_){
             rawAnswerText += `\n\n（错误：SSE 连接中断/失败）`;
-            renderAnswerWithImages(answerEl, rawAnswerText, []);
+            renderStreamingText(answerEl, rawAnswerText);
           }
           es.close();
           sendBtn.disabled = false;

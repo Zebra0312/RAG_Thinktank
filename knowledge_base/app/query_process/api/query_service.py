@@ -96,7 +96,7 @@ async def query(background_tasks: BackgroundTasks, request: QueryRequest):
 @app.get("/stream/{session_id}")
 async def stream(session_id: str, request: Request):
     return StreamingResponse(
-        sse_generator(session_id),
+        sse_generator(session_id, request),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
@@ -128,4 +128,4 @@ async def clear_chat_history(session_id: str):
     return {"message": "History cleared", "deleted_count": count}
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8001)
+    uvicorn.run(app, host="127.0.0.1", port=9091)

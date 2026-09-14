@@ -298,9 +298,18 @@ print("重写后问题：", result["rewritten_query"])
 ### 8. 启动检索服务（FastAPI + SSE）
 
 ```bash
-uv run python app/query_process/api/query_service.py
-# 服务监听 http://127.0.0.1:8001
+# 在 knowledge_base 目录下执行（-m 方式才会把项目根加入 sys.path，能 import app.*）
+uv run python -m app.query_process.api.query_service
+# 服务监听 http://127.0.0.1:9091
+
+# 启动后，务必通过该服务本身打开问答页面（同源，最稳妥）：
+#   http://127.0.0.1:9091/chat.html
 ```
+
+> 页面内的 `API_BASE` 只会把 **9091 同源** 视为后端；其余情况（IDE 内置预览、静态服务器、`file://`）
+> 一律回退到 `chat.html` 顶部的 `API_HOST`（默认 `http://127.0.0.1:9091`）。
+> 所以：要么用 `http://127.0.0.1:9091/chat.html` 打开，要么保证 `API_HOST` 与实际服务端口一致，
+> 否则请求会打到“提供页面的那台服务器”上并返回它的 HTML 404（右上角显示“API: 未连接”）。
 
 | 接口                      | 方法   | 说明                                             |
 | ------------------------- | ------ | ------------------------------------------------ |
