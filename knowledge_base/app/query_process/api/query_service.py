@@ -17,7 +17,7 @@ from app.query_process.agent.main_graph import kb_query_app
 
 
 # 定义fastapi对象
-app = FastAPI(title="query service", description="掌柜智库查询服务！")
+app = FastAPI(title="query service", description="rag智库查询服务！")
 
 # 跨域配置
 app.add_middleware(

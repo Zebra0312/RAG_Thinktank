@@ -15,7 +15,7 @@ from app.utils.path_util import PROJECT_ROOT
 from app.utils.task_utils import update_task_status, TASK_STATUS_PROCESSING, add_done_task, TASK_STATUS_COMPLETED, \
     TASK_STATUS_FAILED, add_running_task, get_task_status, get_running_task_list, get_done_task_list
 
-app = FastAPI(title="import service", description="掌柜智库导入服务！")
+app = FastAPI(title="import service", description="rag智库导入服务！")
 
 # 解决跨域问题
 app.add_middleware(
